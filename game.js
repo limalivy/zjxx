@@ -167,3 +167,71 @@ function triggerFlash() {
     flashOverlay.classList.add('fading');
   });
 }
+
+// ===== 输入处理 =====
+charInput.addEventListener('compositionstart', () => {
+  state.isComposing = true;
+});
+
+charInput.addEventListener('compositionend', (e) => {
+  state.isComposing = false;
+  // IME 组合完成，取最终输入
+  const text = e.data || charInput.value;
+  if (text) {
+    processInput(text);
+  }
+  charInput.value = '';
+});
+
+charInput.addEventListener('input', () => {
+  // 非 IME 输入时直接处理（如直接输入英文、数字）
+  if (!state.isComposing) {
+    const text = charInput.value;
+    if (text) {
+      processInput(text);
+      charInput.value = '';
+    }
+  }
+});
+
+/** 处理输入文本，匹配屏幕上的字 */
+function processInput(text) {
+  if (state.isGameOver) return;
+
+  // 取最后一个有效字符（兼容输入法可能带的多余字符）
+  const inputChar = text.slice(-1);
+  if (!inputChar) return;
+
+  // 在活跃字中查找匹配
+  let matched = false;
+  for (let i = state.activeChars.length - 1; i >= 0; i--) {
+    if (state.activeChars[i].char === inputChar) {
+      // 匹配成功！
+      popChar(i);
+      state.score += 10;
+      scoreValue.textContent = state.score;
+      spawnChar(); // 打掉即补
+      matched = true;
+      break;
+    }
+  }
+
+  if (!matched) {
+    // 匹配失败
+    takeDamage(1);
+  }
+}
+
+/** 消除字（带动画） */
+function popChar(index) {
+  const ch = state.activeChars[index];
+  ch.el.classList.add('popping');
+
+  // 动画结束后移除
+  ch.el.addEventListener('animationend', function handler() {
+    ch.el.removeEventListener('animationend', handler);
+    ch.el.remove();
+  }, { once: true });
+
+  state.activeChars.splice(index, 1);
+}
