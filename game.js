@@ -90,3 +90,45 @@ function stopSpawning() {
     state.spawnTimerId = null;
   }
 }
+
+// ===== 游戏循环 =====
+function gameLoop() {
+  if (state.isGameOver) return;
+
+  const screenBottom = window.innerHeight;
+
+  // 倒序遍历（方便删除）
+  for (let i = state.activeChars.length - 1; i >= 0; i--) {
+    const ch = state.activeChars[i];
+    ch.y += ch.speed;
+    ch.el.style.top = ch.y + 'px';
+
+    // 检测越界
+    if (ch.y > screenBottom) {
+      removeChar(i);
+      takeDamage(2);
+    }
+  }
+
+  state.animFrameId = requestAnimationFrame(gameLoop);
+}
+
+/** 移除指定索引的字（不扣血） */
+function removeChar(index) {
+  const ch = state.activeChars[index];
+  ch.el.remove();
+  state.activeChars.splice(index, 1);
+}
+
+/** 启动游戏循环 */
+function startLoop() {
+  state.animFrameId = requestAnimationFrame(gameLoop);
+}
+
+/** 停止游戏循环 */
+function stopLoop() {
+  if (state.animFrameId) {
+    cancelAnimationFrame(state.animFrameId);
+    state.animFrameId = null;
+  }
+}
