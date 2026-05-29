@@ -133,3 +133,37 @@ function stopLoop() {
     state.animFrameId = null;
   }
 }
+
+// ===== HP 管理 =====
+function takeDamage(amount) {
+  if (state.isGameOver) return;
+
+  state.hp = Math.max(0, state.hp - amount);
+  updateHpBar();
+  triggerFlash();
+
+  if (state.hp <= 0) {
+    gameOver();
+  }
+}
+
+function updateHpBar() {
+  const pct = (state.hp / state.maxHp) * 100;
+  hpBarFill.style.width = pct + '%';
+  // 血条渐变位置随血量变化（绿→红）
+  hpBarFill.style.backgroundPosition = (100 - pct) + '% 50%';
+  hpText.textContent = state.hp + ' / ' + state.maxHp;
+}
+
+// ===== 全屏闪烁 =====
+function triggerFlash() {
+  // 重置：移除 fading class，添加 active（立即红色）
+  flashOverlay.classList.remove('fading');
+  flashOverlay.classList.add('active');
+
+  // 下一帧开始淡出
+  requestAnimationFrame(() => {
+    flashOverlay.classList.remove('active');
+    flashOverlay.classList.add('fading');
+  });
+}
