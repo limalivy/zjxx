@@ -122,6 +122,7 @@ function removeChar(index) {
 
 /** 启动游戏循环 */
 function startLoop() {
+  if (state.animFrameId) return; // 防止重复启动
   state.animFrameId = requestAnimationFrame(gameLoop);
 }
 
