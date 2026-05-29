@@ -235,3 +235,54 @@ function popChar(index) {
 
   state.activeChars.splice(index, 1);
 }
+
+// ===== 游戏结束 =====
+function gameOver() {
+  state.isGameOver = true;
+  stopLoop();
+  stopSpawning();
+
+  // 清除所有掉落字
+  for (const ch of state.activeChars) {
+    ch.el.remove();
+  }
+  state.activeChars = [];
+
+  // 禁用输入
+  charInput.disabled = true;
+
+  // 显示结束界面
+  finalScore.textContent = '最终得分: ' + state.score;
+  gameoverOverlay.classList.remove('hidden');
+}
+
+// ===== 重新开始 =====
+function restart() {
+  // 重置状态
+  state.hp = state.maxHp;
+  state.score = 0;
+  state.isGameOver = false;
+  state.activeChars = [];
+  state.isComposing = false;
+
+  // 重置 UI
+  updateHpBar();
+  scoreValue.textContent = '0';
+  charInput.disabled = false;
+  charInput.value = '';
+  gameoverOverlay.classList.add('hidden');
+
+  // 清除残留 DOM
+  charArea.innerHTML = '';
+
+  // 重新打乱字库
+  shuffledBank.sort(() => Math.random() - 0.5);
+  charBankIndex = 0;
+
+  // 启动游戏
+  startSpawning();
+  startLoop();
+  charInput.focus();
+}
+
+restartBtn.addEventListener('click', restart);
