@@ -286,3 +286,39 @@ function restart() {
 }
 
 restartBtn.addEventListener('click', restart);
+
+// ===== 游戏初始化 =====
+function init() {
+  // 初始生成 3 个字，让游戏一开始就有东西
+  spawnChar();
+  spawnChar();
+  spawnChar();
+
+  // 启动定时刷新和游戏循环
+  startSpawning();
+  startLoop();
+
+  // 聚焦输入框
+  charInput.focus();
+
+  // 保持输入框始终聚焦
+  document.addEventListener('click', () => {
+    if (!state.isGameOver) {
+      charInput.focus();
+    }
+  });
+}
+
+// 启动！
+init();
+
+// 窗口大小变化时，确保字不会超出边界
+window.addEventListener('resize', () => {
+  const maxX = window.innerWidth - 100;
+  for (const ch of state.activeChars) {
+    if (ch.x > maxX) {
+      ch.x = maxX;
+      ch.el.style.left = maxX + 'px';
+    }
+  }
+});
