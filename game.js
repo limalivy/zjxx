@@ -62,7 +62,7 @@ function spawnChar() {
   if (state.activeChars.length >= 5) return;
 
   const char = nextChar();
-  const x = 40 + Math.random() * (window.innerWidth - 120);
+  const x = 40 + Math.random() * Math.max(0, window.innerWidth - 120);
   const y = -(30 + Math.random() * 90);   // -30 ~ -120
   const speed = 0.5 + Math.random() * 0.7; // 0.5 ~ 1.2 px/frame
 
