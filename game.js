@@ -44,3 +44,49 @@ const state = {
   animFrameId: null,
   isComposing: false,
 };
+
+// ===== 字库索引（循环使用） =====
+let charBankIndex = 0;
+const shuffledBank = [...CHAR_BANK].sort(() => Math.random() - 0.5);
+
+/** 获取下一个字（打乱后循环取用） */
+function nextChar() {
+  const ch = shuffledBank[charBankIndex];
+  charBankIndex = (charBankIndex + 1) % shuffledBank.length;
+  return ch;
+}
+
+/** 生成一个掉落字 */
+function spawnChar() {
+  if (state.isGameOver) return;
+  if (state.activeChars.length >= 5) return;
+
+  const char = nextChar();
+  const x = 40 + Math.random() * (window.innerWidth - 120);
+  const y = -(30 + Math.random() * 90);   // -30 ~ -120
+  const speed = 0.5 + Math.random() * 0.7; // 0.5 ~ 1.2 px/frame
+
+  const el = document.createElement('span');
+  el.className = 'falling-char';
+  el.textContent = char;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  charArea.appendChild(el);
+
+  state.activeChars.push({ char, x, y, speed, el });
+}
+
+/** 开始定时刷新 */
+function startSpawning() {
+  state.spawnTimerId = setInterval(() => {
+    spawnChar();
+  }, 2500);
+}
+
+/** 停止定时刷新 */
+function stopSpawning() {
+  if (state.spawnTimerId) {
+    clearInterval(state.spawnTimerId);
+    state.spawnTimerId = null;
+  }
+}
