@@ -1,0 +1,240 @@
+/* ===== Reset & Base ===== */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: KaiTi, STKaiti, "楷体", "Noto Serif SC", serif;
+  background: #0d0d1a;
+  color: #d4a574;
+  user-select: none;
+}
+
+/* ===== 主容器 ===== */
+#game-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at 50% 30%, #1a1a3e 0%, #0d0d1a 70%);
+}
+
+/* ===== HUD ===== */
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 16px 24px;
+  background: linear-gradient(180deg, rgba(13,13,26,0.95) 60%, rgba(13,13,26,0) 100%);
+  pointer-events: none;
+}
+
+#title {
+  text-align: center;
+  font-size: 2rem;
+  letter-spacing: 0.5em;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  margin-bottom: 12px;
+}
+
+/* HP 血条 */
+#hp-bar-container {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  height: 22px;
+  margin: 0 auto 8px;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid #d4a574;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+#hp-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #4caf50, #8bc34a, #ffeb3b, #ff9800, #f44336);
+  background-size: 400% 100%;
+  background-position: 0% 50%;
+  transition: width 0.3s ease, background-position 0.3s ease;
+  border-radius: 3px;
+}
+
+#hp-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  color: #fff;
+  text-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
+
+#score-display {
+  text-align: center;
+  font-size: 1rem;
+  color: #d4a574;
+}
+
+#score-value {
+  color: #ffd700;
+  font-size: 1.2rem;
+}
+
+/* ===== 掉落字区域 ===== */
+#char-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.falling-char {
+  position: absolute;
+  font-size: 2.5rem;
+  color: #ffd700;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.5), 0 0 24px rgba(255, 215, 0, 0.2);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  animation: charGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes charGlow {
+  0%   { text-shadow: 0 0 12px rgba(255,215,0,0.5), 0 0 24px rgba(255,215,0,0.2); }
+  100% { text-shadow: 0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,215,0,0.4); }
+}
+
+/* 消除动画 */
+.falling-char.popping {
+  animation: charPop 0.3s ease-out forwards;
+}
+
+@keyframes charPop {
+  0%   { transform: scale(1); opacity: 1; }
+  50%  { transform: scale(1.5); opacity: 0.7; color: #fff; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+/* ===== 输入区 ===== */
+#input-area {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+}
+
+#char-input {
+  width: 280px;
+  padding: 12px 20px;
+  font-size: 1.2rem;
+  font-family: KaiTi, STKaiti, "楷体", "Noto Serif SC", serif;
+  text-align: center;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid #d4a574;
+  border-radius: 8px;
+  color: #ffd700;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#char-input::placeholder {
+  color: rgba(212, 165, 116, 0.4);
+}
+
+#char-input:focus {
+  border-color: #ffd700;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.3);
+}
+
+/* ===== 全屏闪烁 ===== */
+#flash-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(220, 20, 60, 0.35);
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0ms;
+}
+
+#flash-overlay.active {
+  opacity: 1;
+  transition: opacity 0ms;
+}
+
+#flash-overlay.fading {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+
+/* ===== 游戏结束遮罩 ===== */
+#gameover-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#gameover-overlay.hidden {
+  display: none;
+}
+
+#gameover-box {
+  text-align: center;
+  padding: 48px 64px;
+  background: rgba(26, 26, 62, 0.95);
+  border: 2px solid #d4a574;
+  border-radius: 16px;
+  box-shadow: 0 0 60px rgba(212, 165, 116, 0.2);
+}
+
+#gameover-box h2 {
+  font-size: 2.5rem;
+  color: #f44336;
+  margin-bottom: 20px;
+  letter-spacing: 0.3em;
+}
+
+#gameover-box p {
+  font-size: 1.3rem;
+  color: #ffd700;
+  margin-bottom: 30px;
+}
+
+#restart-btn {
+  padding: 12px 40px;
+  font-size: 1.2rem;
+  font-family: KaiTi, STKaiti, "楷体", serif;
+  color: #0d0d1a;
+  background: linear-gradient(135deg, #ffd700, #d4a574);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+#restart-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.4);
+}
+
+#restart-btn:active {
+  transform: scale(0.98);
+}
