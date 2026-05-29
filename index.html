@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>字界修仙</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 游戏主容器 -->
+  <div id="game-container">
+    <!-- HUD：标题、血条、分数 -->
+    <div id="hud">
+      <h1 id="title">字 界 修 仙</h1>
+      <div id="hp-bar-container">
+        <div id="hp-bar-fill"></div>
+        <span id="hp-text">50 / 50</span>
+      </div>
+      <div id="score-display">得分: <span id="score-value">0</span></div>
+    </div>
+
+    <!-- 掉落字区域 -->
+    <div id="char-area"></div>
+
+    <!-- 底部输入区 -->
+    <div id="input-area">
+      <input
+        type="text"
+        id="char-input"
+        autocomplete="off"
+        autofocus
+        placeholder="在此输入..."
+      >
+    </div>
+
+    <!-- 全屏闪烁遮罩 -->
+    <div id="flash-overlay"></div>
+
+    <!-- 游戏结束遮罩 -->
+    <div id="gameover-overlay" class="hidden">
+      <div id="gameover-box">
+        <h2>道心破碎</h2>
+        <p id="final-score"></p>
+        <button id="restart-btn">重新修仙</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
