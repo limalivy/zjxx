@@ -37,6 +37,40 @@ html, body {
   margin-bottom: 48px;
 }
 
+#charset-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+#charset-prev, #charset-next {
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  color: #d4a574;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid #d4a574;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  line-height: 1;
+}
+
+#charset-prev:hover, #charset-next:hover {
+  border-color: #ffd700;
+  color: #ffd700;
+}
+
+#charset-name {
+  font-size: 1.1rem;
+  color: #ffd700;
+  letter-spacing: 0.1em;
+  min-width: 140px;
+  text-align: center;
+}
+
 #mode-cards {
   display: flex;
   flex-direction: column;

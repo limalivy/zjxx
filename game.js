@@ -22,6 +22,22 @@ const CHAR_BANK = [
   '金','具','安','合','变','口','先','打','花','觉'
 ];
 
+// ===== 字集管理 =====
+const CHAR_SET_FILES = [
+  { path: 'data/top0-500.json', name: '常用字500' },
+  { path: 'data/top501-1000.json', name: '常用字501-1000' },
+  { path: 'data/top1001-1500.json', name: '常用字1001-1500' },
+];
+const BUILT_IN_NAME = '内置200字';
+
+// 所有可用字集：{ name -> words[] }
+const charSets = {};
+charSets[BUILT_IN_NAME] = [...CHAR_BANK];
+
+// 当前使用的字集
+let activeCharBank = [...CHAR_BANK];
+let activeCharSetName = BUILT_IN_NAME;
+
 // ===== 等级配置（运行时从 levels.json 加载，此为兜底） =====
 let LEVELS = [
   { index: 0, name: '练气期', speedMult: 0.5 },
@@ -35,6 +51,9 @@ let LEVELS = [
 const modeSelect = document.getElementById('mode-select');
 const modeLevel = document.getElementById('mode-level');
 const modeHighscore = document.getElementById('mode-highscore');
+const charsetName = document.getElementById('charset-name');
+const charsetPrev = document.getElementById('charset-prev');
+const charsetNext = document.getElementById('charset-next');
 const gameContainer = document.getElementById('game-container');
 const charArea = document.getElementById('char-area');
 const charInput = document.getElementById('char-input');
@@ -83,7 +102,7 @@ const state = {
 
 // ===== 字库索引（循环使用） =====
 let charBankIndex = 0;
-let shuffledBank = [...CHAR_BANK].sort(() => Math.random() - 0.5);
+let shuffledBank = [...activeCharBank].sort(() => Math.random() - 0.5);
 
 /** 获取下一个字（打乱后循环取用） */
 function nextChar() {
@@ -400,7 +419,7 @@ function tribulationSuccess() {
 
   charInput.disabled = true;
 
-  if (state.level < 4) {
+  if (state.level < LEVELS.length - 1) {
     state.level++;
   }
   saveData();
@@ -496,7 +515,7 @@ function startMode(mode) {
   }
 
   // 重新打乱字库
-  shuffledBank = [...CHAR_BANK].sort(() => Math.random() - 0.5);
+  shuffledBank = [...activeCharBank].sort(() => Math.random() - 0.5);
   charBankIndex = 0;
 
   // 初始生成 3 个字
@@ -535,7 +554,8 @@ function backToMenu() {
   flashOverlay.classList.remove('active', 'fading');
 
   // 更新模式选择界面的信息
-  modeLevel.textContent = LEVELS[state.level].name;
+  charsetName.textContent = activeCharSetName;
+  modeLevel.textContent = LEVELS[state.level] ? LEVELS[state.level].name : '练气期';
   modeHighscore.textContent = state.trialHighScore;
 
   modeSelect.style.display = '';
@@ -600,7 +620,7 @@ function restart() {
   highScoreInfo.classList.add('hidden');
   charArea.innerHTML = '';
 
-  shuffledBank = [...CHAR_BANK].sort(() => Math.random() - 0.5);
+  shuffledBank = [...activeCharBank].sort(() => Math.random() - 0.5);
   charBankIndex = 0;
 
   if (state.mode === 'trial') {
@@ -636,12 +656,66 @@ document.querySelectorAll('.mode-card').forEach(card => {
   card.addEventListener('click', () => {
     const mode = card.getAttribute('data-mode');
     if (mode === 'cultivate') {
-      // 修炼模式：先选速度
       showSpeedSelector();
     } else {
       startMode(mode);
     }
   });
+});
+
+// ===== 字集切换 =====
+function getCharSetList() {
+  return [BUILT_IN_NAME, ...CHAR_SET_FILES.map(f => f.name)];
+}
+
+function switchCharSet(name) {
+  if (!charSets[name] || activeCharSetName === name) return;
+
+  // 保存当前字集记录
+  saveData();
+
+  // 切换
+  activeCharSetName = name;
+  activeCharBank = charSets[name];
+
+  // 加载新字集记录
+  state.level = 0;
+  state.trialHighScore = 0;
+  try {
+    const raw = localStorage.getItem(RECORDS_KEY);
+    if (raw) {
+      const records = JSON.parse(raw);
+      const rec = records[activeCharSetName];
+      if (rec) {
+        state.level = rec.level || 0;
+        state.trialHighScore = rec.trialHighScore || 0;
+      }
+    }
+  } catch (e) { /* 忽略 */ }
+
+  // 更新 UI
+  charsetName.textContent = name;
+  updateModeInfo();
+  saveData();
+}
+
+function updateModeInfo() {
+  modeLevel.textContent = LEVELS[state.level] ? LEVELS[state.level].name : '练气期';
+  modeHighscore.textContent = state.trialHighScore;
+}
+
+charsetPrev.addEventListener('click', () => {
+  const list = getCharSetList();
+  const idx = list.indexOf(activeCharSetName);
+  const prev = idx > 0 ? list[idx - 1] : list[list.length - 1];
+  switchCharSet(prev);
+});
+
+charsetNext.addEventListener('click', () => {
+  const list = getCharSetList();
+  const idx = list.indexOf(activeCharSetName);
+  const next = idx < list.length - 1 ? list[idx + 1] : list[0];
+  switchCharSet(next);
 });
 
 // ===== 保持输入框聚焦 =====
@@ -667,31 +741,29 @@ window.addEventListener('resize', () => {
 // ===== 本地存储 =====
 const SAVE_KEY = 'zijie-xiuxian-save';
 
-function loadSaveData() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (raw) {
-      const data = JSON.parse(raw);
-      if (typeof data.level === 'number') state.level = data.level;
-      if (typeof data.cultivateSpeed === 'number') state.cultivateSpeed = data.cultivateSpeed;
-      if (typeof data.trialHighScore === 'number') state.trialHighScore = data.trialHighScore;
-    }
-  } catch (e) {
-    // 忽略损坏的数据
-  }
-}
+// 字集记录的 localStorage key（独立存储）
+const RECORDS_KEY = 'zijie-xiuxian-records';
 
 function saveData() {
+  // 保存全局设置
   try {
     const data = {
-      level: state.level,
+      currentCharSet: activeCharSetName,
       cultivateSpeed: state.cultivateSpeed,
-      trialHighScore: state.trialHighScore,
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-  } catch (e) {
-    // 忽略存储失败
-  }
+  } catch (e) { /* 忽略 */ }
+
+  // 保存当前字集记录
+  try {
+    const raw = localStorage.getItem(RECORDS_KEY);
+    const records = raw ? JSON.parse(raw) : {};
+    records[activeCharSetName] = {
+      level: state.level,
+      trialHighScore: state.trialHighScore,
+    };
+    localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+  } catch (e) { /* 忽略 */ }
 }
 
 // ===== 游戏初始化 =====
@@ -703,14 +775,58 @@ async function init() {
     if (data.levels && data.levels.length > 0) {
       LEVELS = data.levels;
     }
-  } catch (e) {
-    // 使用内置兜底配置
+  } catch (e) { /* 使用兜底 */ }
+
+  // 加载字集文件
+  for (const cs of CHAR_SET_FILES) {
+    try {
+      const resp = await fetch(cs.path);
+      const data = await resp.json();
+      if (data.words && data.words.length > 0) {
+        charSets[cs.name] = data.words;
+      }
+    } catch (e) { /* 跳过加载失败的字集 */ }
   }
 
-  // 加载存档
-  loadSaveData();
+  // 加载存档（先设置 currentCharSet，再加载其记录）
+  let savedCharSet = null;
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (typeof data.cultivateSpeed === 'number') state.cultivateSpeed = data.cultivateSpeed;
+      if (typeof data.currentCharSet === 'string') savedCharSet = data.currentCharSet;
+      // 迁移旧格式
+      if (!data.charSetRecords && typeof data.level === 'number') {
+        state.level = data.level;
+        state.trialHighScore = data.trialHighScore || 0;
+      }
+    }
+  } catch (e) { /* 忽略 */ }
+
+  // 设置当前字集
+  if (savedCharSet && charSets[savedCharSet]) {
+    activeCharSetName = savedCharSet;
+  } else if (charSets[CHAR_SET_FILES[0].name]) {
+    activeCharSetName = CHAR_SET_FILES[0].name;
+  }
+  activeCharBank = charSets[activeCharSetName] || [...CHAR_BANK];
+
+  // 加载字集独立记录
+  try {
+    const raw = localStorage.getItem(RECORDS_KEY);
+    if (raw) {
+      const records = JSON.parse(raw);
+      const rec = records[activeCharSetName];
+      if (rec) {
+        state.level = rec.level || 0;
+        state.trialHighScore = rec.trialHighScore || 0;
+      }
+    }
+  } catch (e) { /* 忽略 */ }
 
   // 显示模式选择界面
+  charsetName.textContent = activeCharSetName;
   modeLevel.textContent = LEVELS[state.level] ? LEVELS[state.level].name : '练气期';
   modeHighscore.textContent = state.trialHighScore;
 }
