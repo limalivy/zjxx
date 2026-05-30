@@ -62,7 +62,11 @@ function spawnChar() {
   if (state.activeChars.length >= 5) return;
 
   const char = nextChar();
-  const x = 40 + Math.random() * Math.max(0, window.innerWidth - 120);
+  // X轴：手机全屏，桌面端约束在中间2/4区域
+  const isMobile = window.innerWidth <= 768;
+  const x = isMobile
+    ? 20 + Math.random() * Math.max(0, window.innerWidth - 40)
+    : window.innerWidth * 0.25 + Math.random() * (window.innerWidth * 0.5);
   const y = -(30 + Math.random() * 90);   // -30 ~ -120
   const speed = 0.5 + Math.random() * 0.7; // 0.5 ~ 1.2 px/frame
 
