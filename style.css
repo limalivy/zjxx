@@ -357,52 +357,83 @@ html, body {
   letter-spacing: 0.3em;
 }
 
-#speed-options {
+#speed-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+#speed-input {
+  width: 120px;
+  padding: 10px 16px;
+  font-size: 1.5rem;
+  font-family: KaiTi, STKaiti, "楷体", serif;
+  text-align: center;
+  color: #ffd700;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid #d4a574;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+#speed-input:focus {
+  border-color: #ffd700;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.3);
+}
+
+/* Hide number input spinners */
+#speed-input::-webkit-inner-spin-button,
+#speed-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+#speed-input[type=number] {
+  -moz-appearance: textfield;
+}
+
+#speed-unit {
+  font-size: 1.1rem;
+  color: #d4a574;
+}
+
+#speed-btns {
   display: flex;
   gap: 16px;
   justify-content: center;
-  margin-bottom: 24px;
 }
 
-.speed-option {
-  width: 64px;
-  height: 64px;
-  font-size: 1.5rem;
+#speed-confirm-btn {
+  padding: 10px 32px;
+  font-size: 1.1rem;
   font-family: KaiTi, STKaiti, "楷体", serif;
-  color: #d4a574;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid #d4a574;
-  border-radius: 12px;
+  color: #0d0d1a;
+  background: linear-gradient(135deg, #ffd700, #d4a574);
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
-.speed-option:hover {
-  transform: scale(1.08);
-  border-color: #ffd700;
-  color: #ffd700;
-  box-shadow: 0 0 16px rgba(255, 215, 0, 0.25);
+#speed-confirm-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.4);
 }
 
-.speed-option:active {
-  transform: scale(0.95);
-}
-
-.speed-option.selected {
-  border-color: #ffd700;
-  color: #ffd700;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.35);
-  background: rgba(255, 215, 0, 0.1);
+#speed-confirm-btn:active {
+  transform: scale(0.98);
 }
 
 #speed-back-btn {
-  padding: 8px 32px;
-  font-size: 1rem;
+  padding: 10px 32px;
+  font-size: 1.1rem;
   font-family: KaiTi, STKaiti, "楷体", serif;
   color: #d4a574;
   background: transparent;
   border: 1px solid #d4a574;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }

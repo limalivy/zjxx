@@ -318,25 +318,33 @@ resumeBtn.addEventListener('click', resumeGame);
 backBtn.addEventListener('click', backToMenu);
 
 // ===== 修炼速度选择 =====
+const speedInput = document.getElementById('speed-input');
+const speedConfirmBtn = document.getElementById('speed-confirm-btn');
+const speedBackBtn2 = document.getElementById('speed-back-btn');
+
 function showSpeedSelector() {
+  speedInput.value = state.cultivateSpeed;
   speedSelectOverlay.classList.remove('hidden');
-  // 高亮上次选择的速度
-  document.querySelectorAll('.speed-option').forEach(btn => {
-    const speed = parseFloat(btn.getAttribute('data-speed'));
-    btn.classList.toggle('selected', speed === state.cultivateSpeed);
-  });
+  speedInput.focus();
 }
 
-document.querySelectorAll('.speed-option').forEach(btn => {
-  btn.addEventListener('click', () => {
-    state.cultivateSpeed = parseFloat(btn.getAttribute('data-speed'));
-    saveData();
-    speedSelectOverlay.classList.add('hidden');
-    startMode('cultivate');
-  });
+speedConfirmBtn.addEventListener('click', () => {
+  const speed = parseFloat(speedInput.value);
+  if (isNaN(speed) || speed <= 0) return;
+  state.cultivateSpeed = Math.round(speed * 10) / 10; // 保留一位小数
+  saveData();
+  speedSelectOverlay.classList.add('hidden');
+  startMode('cultivate');
 });
 
-document.getElementById('speed-back-btn').addEventListener('click', () => {
+// 回车也可确认
+speedInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    speedConfirmBtn.click();
+  }
+});
+
+speedBackBtn2.addEventListener('click', () => {
   speedSelectOverlay.classList.add('hidden');
 });
 
