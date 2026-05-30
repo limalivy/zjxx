@@ -33,6 +33,7 @@ const speedSelectOverlay = document.getElementById('speed-select-overlay');
 const pauseBtn = document.getElementById('pause-btn');
 const backBtn = document.getElementById('back-btn');
 const pauseOverlay = document.getElementById('pause-overlay');
+const cultivateTimer = document.getElementById('cultivate-timer');
 const timerDisplay = document.getElementById('timer-display');
 const levelDisplay = document.getElementById('level-display');
 const speedDisplay = document.getElementById('speed-display');
@@ -66,14 +67,25 @@ const state = {
   tribulationTimerId: null,
   trialSpeedMult: 0.5,
   trialRampTimerId: null,
+  // 修炼模式：练习系统
+  practiceList: [],            // [{ char, expiresAt }]  需要加强练习的字
+  consecutiveCorrect: 0,       // 连续正确次数
+  pendingWrong: null,          // 用户刚输入错的字符
+  gameStartTime: 0,            // 本局开始时间戳
+  cultivateTimerId: null,      // 修炼计时器
 };
 
 // ===== 字库索引（循环使用） =====
 let charBankIndex = 0;
 let shuffledBank = [...activeCharBank].sort(() => Math.random() - 0.5);
 
-/** 获取下一个字（打乱后循环取用） */
+/** 获取下一个字（打乱后循环取用，修炼模式练习字有更高概率） */
 function nextChar() {
+  // 修炼模式：练习列表中的字有 50% 概率被选中
+  if (state.mode === 'cultivate' && state.practiceList.length > 0 && Math.random() < 0.5) {
+    const pick = state.practiceList[Math.floor(Math.random() * state.practiceList.length)];
+    return pick.char;
+  }
   const ch = shuffledBank[charBankIndex];
   charBankIndex = (charBankIndex + 1) % shuffledBank.length;
   return ch;
@@ -89,6 +101,14 @@ function getSpeedMultiplier() {
     return state.trialSpeedMult;
   }
   return state.cultivateSpeed; // 修炼模式
+}
+
+// ===== 练习系统（修炼模式） =====
+/** 将字加入练习列表，10 秒后过期 */
+function addToPractice(char) {
+  // 避免重复添加
+  if (state.practiceList.some(p => p.char === char)) return;
+  state.practiceList.push({ char, expiresAt: Date.now() + 10000 });
 }
 
 /** 生成一个掉落字 */
@@ -142,6 +162,12 @@ function gameLoop() {
   }
 
   const screenBottom = window.innerHeight;
+  const now = Date.now();
+
+  // 清理过期的练习字
+  if (state.mode === 'cultivate') {
+    state.practiceList = state.practiceList.filter(p => p.expiresAt > now);
+  }
 
   // 倒序遍历（方便删除）
   for (let i = state.activeChars.length - 1; i >= 0; i--) {
@@ -151,6 +177,10 @@ function gameLoop() {
 
     // 检测越界
     if (ch.y > screenBottom) {
+      // 修炼模式：掉落的字加入练习列表
+      if (state.mode === 'cultivate') {
+        addToPractice(ch.char);
+      }
       removeChar(i);
       takeDamage(2);
     }
@@ -250,13 +280,33 @@ function processInput(text) {
       state.score += 10;
       scoreValue.textContent = state.score;
       spawnChar();
+
+      // 修炼模式：如果之前有 pendingWrong，当前匹配到的字就是用户本想打的字
+      if (state.mode === 'cultivate' && state.pendingWrong) {
+        addToPractice(inputChar);
+        state.pendingWrong = null;
+        state.consecutiveCorrect = 0;
+      } else if (state.mode === 'cultivate') {
+        state.consecutiveCorrect++;
+        if (state.consecutiveCorrect >= 2) {
+          state.practiceList = [];
+          state.consecutiveCorrect = 0;
+        }
+      }
+
       matched = true;
       break;
     }
   }
 
   if (!matched) {
-    takeDamage(1);
+    if (state.mode === 'cultivate') {
+      // 修炼模式：不扣血，记录 pendingWrong
+      state.pendingWrong = inputChar;
+      state.consecutiveCorrect = 0;
+    } else {
+      takeDamage(1);
+    }
   }
 }
 
@@ -423,6 +473,31 @@ function updateSpeedDisplay() {
   speedDisplay.textContent = '当前速度 x' + state.trialSpeedMult.toFixed(1);
 }
 
+// ===== 修炼计时器 =====
+function startCultivateTimer() {
+  state.gameStartTime = Date.now();
+  cultivateTimer.classList.remove('hidden');
+  updateCultivateTimer();
+  state.cultivateTimerId = setInterval(() => {
+    if (state.isPaused || state.isGameOver) return;
+    updateCultivateTimer();
+  }, 1000);
+}
+
+function stopCultivateTimer() {
+  if (state.cultivateTimerId) {
+    clearInterval(state.cultivateTimerId);
+    state.cultivateTimerId = null;
+  }
+}
+
+function updateCultivateTimer() {
+  const elapsed = Math.floor((Date.now() - state.gameStartTime) / 1000);
+  const min = Math.floor(elapsed / 60);
+  const sec = elapsed % 60;
+  cultivateTimer.textContent = '修炼时间 ' + min + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
 // ===== 模式管理 =====
 /** 进入一个游戏模式 */
 function startMode(mode) {
@@ -441,6 +516,10 @@ function startMode(mode) {
   state.isComposing = false;
   state.tribulationTimer = 240;
   state.trialSpeedMult = 0.5;
+  state.practiceList = [];
+  state.consecutiveCorrect = 0;
+  state.pendingWrong = null;
+  stopCultivateTimer();
 
   // 重置 UI
   updateHpBar();
@@ -457,6 +536,7 @@ function startMode(mode) {
 
   // 隐藏所有模式特定元素
   pauseBtn.classList.add('hidden');
+  cultivateTimer.classList.add('hidden');
   timerDisplay.classList.add('hidden');
   levelDisplay.classList.add('hidden');
   speedDisplay.classList.add('hidden');
@@ -470,6 +550,7 @@ function startMode(mode) {
     pauseBtn.classList.remove('hidden');
     pauseBtn.textContent = '⏸ 暂停';
     pauseBtn.classList.remove('resume-state');
+    startCultivateTimer();
   } else if (mode === 'tribulation') {
     gameoverTitle.textContent = '渡劫失败';
     levelDisplay.textContent = '当前境界：' + LEVELS[state.level].name;
@@ -503,6 +584,7 @@ function backToMenu() {
   stopSpawning();
   stopTribulationTimer();
   stopTrialRamp();
+  stopCultivateTimer();
   clearAllChars();
 
   state.isGameOver = false;
@@ -566,6 +648,7 @@ function handleGameOver() {
   }
 
   // 修炼 / 试炼通用结束
+  stopCultivateTimer();
   clearAllChars();
   charInput.disabled = true;
   finalScore.textContent = '最终得分: ' + state.score;
@@ -590,6 +673,14 @@ function restart() {
 
   shuffledBank = [...activeCharBank].sort(() => Math.random() - 0.5);
   charBankIndex = 0;
+
+  if (state.mode === 'cultivate') {
+    state.practiceList = [];
+    state.consecutiveCorrect = 0;
+    state.pendingWrong = null;
+    stopCultivateTimer();
+    startCultivateTimer();
+  }
 
   if (state.mode === 'trial') {
     stopTrialRamp();

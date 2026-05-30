@@ -219,7 +219,7 @@ html, body {
   text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
 }
 
-#timer-display.hidden, #level-display.hidden, #speed-display.hidden {
+#cultivate-timer.hidden, #timer-display.hidden, #level-display.hidden, #speed-display.hidden {
   display: none;
 }
 
