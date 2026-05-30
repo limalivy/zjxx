@@ -301,12 +301,11 @@ function processInput(text) {
 
   if (!matched) {
     if (state.mode === 'cultivate') {
-      // 修炼模式：不扣血，记录 pendingWrong
+      // 记录 pendingWrong，下次正确输入的字即为目标错字
       state.pendingWrong = inputChar;
       state.consecutiveCorrect = 0;
-    } else {
-      takeDamage(1);
     }
+    takeDamage(1);
   }
 }
 
