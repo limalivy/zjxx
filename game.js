@@ -74,6 +74,7 @@ const state = {
   pendingWrong: null,          // 用户刚输入错的字符
   gameStartTime: 0,            // 本局开始时间戳
   cultivateTimerId: null,      // 修炼计时器
+  lastScreenHeight: 0,         // 上一帧屏幕高度（检测键盘弹起）
 };
 
 // ===== 字库索引（循环使用） =====
@@ -134,7 +135,9 @@ function spawnChar() {
     : window.innerWidth * 0.25 + Math.random() * (window.innerWidth * 0.5);
   const y = -(30 + Math.random() * 90);   // -30 ~ -120
   const baseSpeed = 0.5 + Math.random() * 0.7; // 0.5 ~ 1.2 px/frame
-  const speed = baseSpeed * getSpeedMultiplier();
+  // 手机屏幕小，速度降至 70%，否则字下落太快
+  const mobileFactor = window.innerWidth <= 768 ? 0.7 : 1.0;
+  const speed = baseSpeed * getSpeedMultiplier() * mobileFactor;
 
   const el = document.createElement('span');
   el.className = 'falling-char';
@@ -172,6 +175,19 @@ function gameLoop() {
 
   const screenBottom = window.innerHeight;
   const now = Date.now();
+
+  // 检测键盘弹起导致的屏幕高度骤降（手机常见）
+  const heightDrop = state.lastScreenHeight - screenBottom;
+  if (heightDrop > 100 && state.lastScreenHeight > 0) {
+    // 键盘弹起，将底部字上移而非杀死
+    for (const ch of state.activeChars) {
+      if (ch.y > screenBottom - 60) {
+        ch.y = Math.max(10, screenBottom - 60 - Math.random() * 80);
+        ch.el.style.top = ch.y + 'px';
+      }
+    }
+  }
+  state.lastScreenHeight = screenBottom;
 
   // 修炼模式：延迟练习字 10 秒后激活
   if (state.mode === 'cultivate' && state.pendingPractice.length > 0) {
@@ -537,6 +553,7 @@ function startMode(mode) {
   state.pendingPractice = [];
   state.consecutiveCorrect = 0;
   state.pendingWrong = null;
+  state.lastScreenHeight = window.innerHeight;
   stopCultivateTimer();
 
   // 重置 UI
