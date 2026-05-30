@@ -43,6 +43,7 @@ const hpText = document.getElementById('hp-text');
 const scoreValue = document.getElementById('score-value');
 const flashOverlay = document.getElementById('flash-overlay');
 const pauseBtn = document.getElementById('pause-btn');
+const backBtn = document.getElementById('back-btn');
 const pauseOverlay = document.getElementById('pause-overlay');
 const timerDisplay = document.getElementById('timer-display');
 const levelDisplay = document.getElementById('level-display');
@@ -312,6 +313,7 @@ function resumeGame() {
 
 pauseBtn.addEventListener('click', togglePause);
 resumeBtn.addEventListener('click', resumeGame);
+backBtn.addEventListener('click', backToMenu);
 
 // 键盘快捷键暂停
 document.addEventListener('keydown', (e) => {

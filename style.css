@@ -152,6 +152,26 @@ html, body {
   display: none;
 }
 
+#back-btn {
+  position: absolute;
+  left: 0;
+  padding: 6px 16px;
+  font-size: 0.9rem;
+  font-family: KaiTi, STKaiti, "楷体", serif;
+  color: #d4a574;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid #d4a574;
+  border-radius: 6px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+#back-btn:hover {
+  border-color: #ffd700;
+  color: #ffd700;
+}
+
 /* 模式信息行 */
 #mode-info-row {
   text-align: center;
