@@ -1,42 +1,10 @@
-// ===== 字库：200 个常用汉字 =====
-const CHAR_BANK = [
-  '的','一','是','不','了','人','我','在','有','他',
-  '这','中','大','来','上','国','个','到','说','们',
-  '为','子','和','你','地','出','道','也','时','年',
-  '得','就','那','要','下','以','生','会','自','着',
-  '过','家','学','对','可','她','里','后','小','么',
-  '心','多','天','而','能','好','都','然','没','日',
-  '于','起','还','发','成','事','只','作','当','想',
-  '看','文','无','开','手','十','用','主','行','方',
-  '又','如','前','所','本','见','经','头','面','公',
-  '同','三','已','老','从','动','两','长','知','民',
-  '样','现','分','将','外','但','身','些','与','高',
-  '意','进','把','法','此','实','回','二','理','美',
-  '点','月','明','其','种','声','全','工','己','话',
-  '正','治','战','体','水','力','军','很','名','使',
-  '重','者','山','利','相','度','新','物','气','间',
-  '并','关','比','或','最','通','系','问','制','向',
-  '业','门','应','加','量','平','命','提','机','它',
-  '第','展','万','去','电','教','少','各','代','百',
-  '世','处','风','路','常','内','被','西','白','光',
-  '金','具','安','合','变','口','先','打','花','觉'
-];
-
-// ===== 字集管理 =====
-const CHAR_SET_FILES = [
-  { path: 'data/top0-500.json', name: '常用字500' },
-  { path: 'data/top501-1000.json', name: '常用字501-1000' },
-  { path: 'data/top1001-1500.json', name: '常用字1001-1500' },
-];
-const BUILT_IN_NAME = '内置200字';
-
+// ===== 字集管理（运行时从 data/char-sets.json 加载） =====
 // 所有可用字集：{ name -> words[] }
 const charSets = {};
-charSets[BUILT_IN_NAME] = [...CHAR_BANK];
 
-// 当前使用的字集
-let activeCharBank = [...CHAR_BANK];
-let activeCharSetName = BUILT_IN_NAME;
+// 当前使用的字集（init 中从清单加载后设置）
+let activeCharBank = [];
+let activeCharSetName = '';
 
 // ===== 等级配置（运行时从 levels.json 加载，此为兜底） =====
 let LEVELS = [
@@ -665,7 +633,7 @@ document.querySelectorAll('.mode-card').forEach(card => {
 
 // ===== 字集切换 =====
 function getCharSetList() {
-  return [BUILT_IN_NAME, ...CHAR_SET_FILES.map(f => f.name)];
+  return Object.keys(charSets);
 }
 
 function switchCharSet(name) {
@@ -777,18 +745,28 @@ async function init() {
     }
   } catch (e) { /* 使用兜底 */ }
 
-  // 加载字集文件
-  for (const cs of CHAR_SET_FILES) {
-    try {
-      const resp = await fetch(cs.path);
-      const data = await resp.json();
-      if (data.words && data.words.length > 0) {
-        charSets[cs.name] = data.words;
-      }
-    } catch (e) { /* 跳过加载失败的字集 */ }
+  // 加载字集清单，按清单逐个加载字集文件
+  try {
+    const manifestResp = await fetch('data/char-sets.json');
+    const manifest = await manifestResp.json();
+    for (const file of manifest) {
+      try {
+        const resp = await fetch('data/' + file);
+        const csData = await resp.json();
+        if (csData.words && csData.words.length > 0) {
+          charSets[csData.title] = csData.words;
+        }
+      } catch (e) { /* 跳过加载失败的单个字集 */ }
+    }
+  } catch (e) { /* 清单加载失败则无字集可用 */ }
+
+  // 无字集时的保护
+  if (Object.keys(charSets).length === 0) {
+    charsetName.textContent = '无字集可用';
+    return;
   }
 
-  // 加载存档（先设置 currentCharSet，再加载其记录）
+  // 加载存档
   let savedCharSet = null;
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -796,21 +774,16 @@ async function init() {
       const data = JSON.parse(raw);
       if (typeof data.cultivateSpeed === 'number') state.cultivateSpeed = data.cultivateSpeed;
       if (typeof data.currentCharSet === 'string') savedCharSet = data.currentCharSet;
-      // 迁移旧格式
-      if (!data.charSetRecords && typeof data.level === 'number') {
-        state.level = data.level;
-        state.trialHighScore = data.trialHighScore || 0;
-      }
     }
   } catch (e) { /* 忽略 */ }
 
   // 设置当前字集
   if (savedCharSet && charSets[savedCharSet]) {
     activeCharSetName = savedCharSet;
-  } else if (charSets[CHAR_SET_FILES[0].name]) {
-    activeCharSetName = CHAR_SET_FILES[0].name;
+  } else {
+    activeCharSetName = Object.keys(charSets)[0];
   }
-  activeCharBank = charSets[activeCharSetName] || [...CHAR_BANK];
+  activeCharBank = charSets[activeCharSetName];
 
   // 加载字集独立记录
   try {

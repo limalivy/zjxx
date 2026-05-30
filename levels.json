@@ -4,6 +4,9 @@
     { "index": 1, "name": "筑基期", "speedMult": 1.0 },
     { "index": 2, "name": "金丹期", "speedMult": 1.5 },
     { "index": 3, "name": "元婴期", "speedMult": 2.0 },
-    { "index": 4, "name": "化神期", "speedMult": 2.5 }
+    { "index": 4, "name": "化神期", "speedMult": 2.5 },
+    { "index": 5, "name": "合体期", "speedMult": 3.0 },
+    { "index": 6, "name": "大乘期", "speedMult": 3.5 },
+    { "index": 7, "name": "渡劫期", "speedMult": 4.0 }
   ]
 }
