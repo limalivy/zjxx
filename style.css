@@ -325,6 +325,93 @@ html, body {
   transition: opacity 300ms ease-out;
 }
 
+/* ===== 修炼速度选择遮罩 ===== */
+#speed-select-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#speed-select-overlay.hidden {
+  display: none;
+}
+
+#speed-select-box {
+  text-align: center;
+  padding: 40px 56px;
+  background: rgba(26, 26, 62, 0.95);
+  border: 2px solid #d4a574;
+  border-radius: 16px;
+  box-shadow: 0 0 60px rgba(212, 165, 116, 0.2);
+}
+
+#speed-select-box h2 {
+  font-size: 2rem;
+  color: #ffd700;
+  margin-bottom: 28px;
+  letter-spacing: 0.3em;
+}
+
+#speed-options {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.speed-option {
+  width: 64px;
+  height: 64px;
+  font-size: 1.5rem;
+  font-family: KaiTi, STKaiti, "楷体", serif;
+  color: #d4a574;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid #d4a574;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.speed-option:hover {
+  transform: scale(1.08);
+  border-color: #ffd700;
+  color: #ffd700;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.25);
+}
+
+.speed-option:active {
+  transform: scale(0.95);
+}
+
+.speed-option.selected {
+  border-color: #ffd700;
+  color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.35);
+  background: rgba(255, 215, 0, 0.1);
+}
+
+#speed-back-btn {
+  padding: 8px 32px;
+  font-size: 1rem;
+  font-family: KaiTi, STKaiti, "楷体", serif;
+  color: #d4a574;
+  background: transparent;
+  border: 1px solid #d4a574;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+#speed-back-btn:hover {
+  border-color: #ffd700;
+  color: #ffd700;
+}
+
 /* ===== 暂停遮罩 ===== */
 #pause-overlay {
   position: fixed;

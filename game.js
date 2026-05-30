@@ -42,6 +42,7 @@ const hpBarFill = document.getElementById('hp-bar-fill');
 const hpText = document.getElementById('hp-text');
 const scoreValue = document.getElementById('score-value');
 const flashOverlay = document.getElementById('flash-overlay');
+const speedSelectOverlay = document.getElementById('speed-select-overlay');
 const pauseBtn = document.getElementById('pause-btn');
 const backBtn = document.getElementById('back-btn');
 const pauseOverlay = document.getElementById('pause-overlay');
@@ -72,6 +73,7 @@ const state = {
   animFrameId: null,
   isComposing: false,
   level: 0,                    // 修仙等级索引 0-4
+  cultivateSpeed: 1.0,         // 修炼模式速度倍率
   trialHighScore: 0,
   tribulationTimer: 240,       // 渡劫剩余秒数
   tribulationTimerId: null,
@@ -99,7 +101,7 @@ function getSpeedMultiplier() {
   if (state.mode === 'trial') {
     return state.trialSpeedMult;
   }
-  return 1.0; // 修炼模式
+  return state.cultivateSpeed; // 修炼模式
 }
 
 /** 生成一个掉落字 */
@@ -315,6 +317,29 @@ pauseBtn.addEventListener('click', togglePause);
 resumeBtn.addEventListener('click', resumeGame);
 backBtn.addEventListener('click', backToMenu);
 
+// ===== 修炼速度选择 =====
+function showSpeedSelector() {
+  speedSelectOverlay.classList.remove('hidden');
+  // 高亮上次选择的速度
+  document.querySelectorAll('.speed-option').forEach(btn => {
+    const speed = parseFloat(btn.getAttribute('data-speed'));
+    btn.classList.toggle('selected', speed === state.cultivateSpeed);
+  });
+}
+
+document.querySelectorAll('.speed-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.cultivateSpeed = parseFloat(btn.getAttribute('data-speed'));
+    saveData();
+    speedSelectOverlay.classList.add('hidden');
+    startMode('cultivate');
+  });
+});
+
+document.getElementById('speed-back-btn').addEventListener('click', () => {
+  speedSelectOverlay.classList.add('hidden');
+});
+
 // 键盘快捷键暂停
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
@@ -431,6 +456,7 @@ function startMode(mode) {
   gameoverOverlay.classList.add('hidden');
   tribulationOverlay.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
+  speedSelectOverlay.classList.add('hidden');
   flashOverlay.classList.remove('active', 'fading');
   highScoreInfo.classList.add('hidden');
 
@@ -497,6 +523,7 @@ function backToMenu() {
   gameoverOverlay.classList.add('hidden');
   tribulationOverlay.classList.add('hidden');
   pauseOverlay.classList.add('hidden');
+  speedSelectOverlay.classList.add('hidden');
   flashOverlay.classList.remove('active', 'fading');
 
   // 更新模式选择界面的信息
@@ -600,7 +627,12 @@ document.querySelectorAll('[id^="back-menu-btn-"]').forEach(btn => {
 document.querySelectorAll('.mode-card').forEach(card => {
   card.addEventListener('click', () => {
     const mode = card.getAttribute('data-mode');
-    startMode(mode);
+    if (mode === 'cultivate') {
+      // 修炼模式：先选速度
+      showSpeedSelector();
+    } else {
+      startMode(mode);
+    }
   });
 });
 
@@ -633,6 +665,7 @@ function loadSaveData() {
     if (raw) {
       const data = JSON.parse(raw);
       if (typeof data.level === 'number') state.level = data.level;
+      if (typeof data.cultivateSpeed === 'number') state.cultivateSpeed = data.cultivateSpeed;
       if (typeof data.trialHighScore === 'number') state.trialHighScore = data.trialHighScore;
     }
   } catch (e) {
@@ -644,6 +677,7 @@ function saveData() {
   try {
     const data = {
       level: state.level,
+      cultivateSpeed: state.cultivateSpeed,
       trialHighScore: state.trialHighScore,
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
