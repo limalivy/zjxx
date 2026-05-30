@@ -7,11 +7,44 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- 模式选择界面 -->
+  <div id="mode-select">
+    <h1 id="mode-title">字 界 修 仙</h1>
+    <div id="mode-cards">
+      <div class="mode-card" data-mode="tribulation">
+        <div class="mode-icon">⚡</div>
+        <h2>渡 劫</h2>
+        <p class="mode-desc">挑战模式 · 4分钟限时</p>
+        <p class="mode-info">当前等级：<span id="mode-level">练气期</span></p>
+      </div>
+      <div class="mode-card" data-mode="cultivate">
+        <div class="mode-icon">🧘</div>
+        <h2>修 炼</h2>
+        <p class="mode-desc">自由模式 · 不限时</p>
+        <p class="mode-info">打牢基础，稳步提升</p>
+      </div>
+      <div class="mode-card" data-mode="trial">
+        <div class="mode-icon">🔥</div>
+        <h2>试 炼</h2>
+        <p class="mode-desc">无尽模式 · 速度递增</p>
+        <p class="mode-info">最高分：<span id="mode-highscore">0</span></p>
+      </div>
+    </div>
+  </div>
+
   <!-- 游戏主容器 -->
-  <div id="game-container">
-    <!-- HUD：标题、血条、分数 -->
+  <div id="game-container" class="hidden">
+    <!-- HUD -->
     <div id="hud">
-      <h1 id="title">字 界 修 仙</h1>
+      <div id="hud-top-row">
+        <h1 id="title">字 界 修 仙</h1>
+        <button id="pause-btn" class="hidden" type="button">⏸ 暂停</button>
+      </div>
+      <div id="mode-info-row">
+        <span id="timer-display" class="hidden"></span>
+        <span id="level-display" class="hidden"></span>
+        <span id="speed-display" class="hidden"></span>
+      </div>
       <div id="hp-bar-container">
         <div id="hp-bar-fill"></div>
         <span id="hp-text">50 / 50</span>
@@ -37,12 +70,37 @@
     <!-- 全屏闪烁遮罩 -->
     <div id="flash-overlay"></div>
 
-    <!-- 游戏结束遮罩 -->
+    <!-- 暂停遮罩 -->
+    <div id="pause-overlay" class="hidden">
+      <div id="pause-box">
+        <h2>已暂停</h2>
+        <button id="resume-btn" type="button">继续修炼</button>
+        <button id="back-menu-btn-1" type="button">返回</button>
+      </div>
+    </div>
+
+    <!-- 渡劫结果遮罩 -->
+    <div id="tribulation-overlay" class="hidden">
+      <div id="tribulation-box">
+        <h2 id="tribulation-result-title"></h2>
+        <p id="tribulation-result-text"></p>
+        <div id="tribulation-btns">
+          <button id="tribulation-retry-btn" type="button">重新渡劫</button>
+          <button id="back-menu-btn-2" type="button">返回</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 游戏结束遮罩（修炼 / 试炼） -->
     <div id="gameover-overlay" class="hidden">
       <div id="gameover-box">
-        <h2>道心破碎</h2>
+        <h2 id="gameover-title">道心破碎</h2>
         <p id="final-score"></p>
-        <button id="restart-btn" type="button">重新修仙</button>
+        <p id="high-score-info" class="hidden"></p>
+        <div id="gameover-btns">
+          <button id="restart-btn" type="button">重新修仙</button>
+          <button id="back-menu-btn-3" type="button">返回</button>
+        </div>
       </div>
     </div>
   </div>

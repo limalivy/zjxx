@@ -15,12 +15,89 @@ html, body {
   user-select: none;
 }
 
+/* ===== 模式选择界面 ===== */
+#mode-select {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 30%, #1a1a3e 0%, #0d0d1a 70%);
+  z-index: 200;
+  padding: 24px;
+}
+
+#mode-title {
+  font-size: 2.5rem;
+  letter-spacing: 0.5em;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  margin-bottom: 48px;
+}
+
+#mode-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.mode-card {
+  background: rgba(26, 26, 62, 0.9);
+  border: 1px solid #d4a574;
+  border-radius: 12px;
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  text-align: center;
+}
+
+.mode-card:hover {
+  transform: scale(1.03);
+  border-color: #ffd700;
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.25);
+}
+
+.mode-card:active {
+  transform: scale(0.98);
+}
+
+.mode-icon {
+  font-size: 2rem;
+  margin-bottom: 4px;
+}
+
+.mode-card h2 {
+  font-size: 1.5rem;
+  color: #ffd700;
+  letter-spacing: 0.3em;
+  margin-bottom: 6px;
+}
+
+.mode-desc {
+  font-size: 0.9rem;
+  color: #d4a574;
+  margin-bottom: 4px;
+}
+
+.mode-info {
+  font-size: 0.8rem;
+  color: rgba(212, 165, 116, 0.6);
+}
+
 /* ===== 主容器 ===== */
 #game-container {
   position: relative;
   width: 100%;
   height: 100%;
   background: radial-gradient(ellipse at 50% 30%, #1a1a3e 0%, #0d0d1a 70%);
+}
+
+#game-container.hidden {
+  display: none;
 }
 
 /* ===== HUD ===== */
@@ -35,13 +112,61 @@ html, body {
   pointer-events: none;
 }
 
+#hud-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 4px;
+}
+
 #title {
   text-align: center;
   font-size: 2rem;
   letter-spacing: 0.5em;
   color: #ffd700;
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-  margin-bottom: 12px;
+}
+
+#pause-btn {
+  position: absolute;
+  right: 0;
+  padding: 6px 16px;
+  font-size: 0.9rem;
+  font-family: KaiTi, STKaiti, "楷体", serif;
+  color: #d4a574;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid #d4a574;
+  border-radius: 6px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+#pause-btn:hover {
+  border-color: #ffd700;
+  color: #ffd700;
+}
+
+#pause-btn.hidden {
+  display: none;
+}
+
+/* 模式信息行 */
+#mode-info-row {
+  text-align: center;
+  margin-bottom: 8px;
+  min-height: 20px;
+}
+
+#timer-display, #level-display, #speed-display {
+  font-size: 0.9rem;
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+#timer-display.hidden, #level-display.hidden, #speed-display.hidden {
+  display: none;
 }
 
 /* HP 血条 */
@@ -180,7 +305,132 @@ html, body {
   transition: opacity 300ms ease-out;
 }
 
-/* ===== 游戏结束遮罩 ===== */
+/* ===== 暂停遮罩 ===== */
+#pause-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#pause-overlay.hidden {
+  display: none;
+}
+
+#pause-box {
+  text-align: center;
+  padding: 48px 64px;
+  background: rgba(26, 26, 62, 0.95);
+  border: 2px solid #d4a574;
+  border-radius: 16px;
+  box-shadow: 0 0 60px rgba(212, 165, 116, 0.2);
+}
+
+#pause-box h2 {
+  font-size: 2.5rem;
+  color: #ffd700;
+  margin-bottom: 30px;
+  letter-spacing: 0.5em;
+}
+
+#resume-btn, #back-menu-btn-1, #back-menu-btn-2, #back-menu-btn-3 {
+  padding: 12px 40px;
+  font-size: 1.2rem;
+  font-family: KaiTi, STKaiti, "楷体", serif;
+  color: #0d0d1a;
+  background: linear-gradient(135deg, #ffd700, #d4a574);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  margin: 0 8px;
+}
+
+#resume-btn:hover, #back-menu-btn-1:hover, #back-menu-btn-2:hover, #back-menu-btn-3:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.4);
+}
+
+#resume-btn:active, #back-menu-btn-1:active, #back-menu-btn-2:active, #back-menu-btn-3:active {
+  transform: scale(0.98);
+}
+
+#back-menu-btn-1, #back-menu-btn-2, #back-menu-btn-3 {
+  background: transparent;
+  color: #d4a574;
+  border: 1px solid #d4a574;
+}
+
+#back-menu-btn-1:hover, #back-menu-btn-2:hover, #back-menu-btn-3:hover {
+  color: #ffd700;
+  border-color: #ffd700;
+}
+
+/* ===== 渡劫结果遮罩 ===== */
+#tribulation-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#tribulation-overlay.hidden {
+  display: none;
+}
+
+#tribulation-box {
+  text-align: center;
+  padding: 48px 64px;
+  background: rgba(26, 26, 62, 0.95);
+  border: 2px solid #d4a574;
+  border-radius: 16px;
+  box-shadow: 0 0 60px rgba(212, 165, 116, 0.2);
+}
+
+#tribulation-result-title {
+  font-size: 2.5rem;
+  color: #ffd700;
+  margin-bottom: 16px;
+  letter-spacing: 0.3em;
+}
+
+#tribulation-result-text {
+  font-size: 1.3rem;
+  color: #ffd700;
+  margin-bottom: 30px;
+}
+
+#tribulation-retry-btn {
+  padding: 12px 40px;
+  font-size: 1.2rem;
+  font-family: KaiTi, STKaiti, "楷体", serif;
+  color: #0d0d1a;
+  background: linear-gradient(135deg, #ffd700, #d4a574);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  margin: 0 8px;
+}
+
+#tribulation-retry-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.4);
+}
+
+#tribulation-retry-btn:active {
+  transform: scale(0.98);
+}
+
+/* ===== 游戏结束遮罩（修炼 / 试炼） ===== */
 #gameover-overlay {
   position: fixed;
   top: 0; left: 0;
@@ -205,17 +455,27 @@ html, body {
   box-shadow: 0 0 60px rgba(212, 165, 116, 0.2);
 }
 
-#gameover-box h2 {
+#gameover-title {
   font-size: 2.5rem;
   color: #f44336;
   margin-bottom: 20px;
   letter-spacing: 0.3em;
 }
 
-#gameover-box p {
+#final-score {
   font-size: 1.3rem;
   color: #ffd700;
-  margin-bottom: 30px;
+  margin-bottom: 8px;
+}
+
+#high-score-info {
+  font-size: 1rem;
+  color: #d4a574;
+  margin-bottom: 20px;
+}
+
+#high-score-info.hidden {
+  display: none;
 }
 
 #restart-btn {
@@ -228,6 +488,7 @@ html, body {
   border-radius: 8px;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
+  margin: 0 8px;
 }
 
 #restart-btn:hover {

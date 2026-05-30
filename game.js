@@ -22,32 +22,65 @@ const CHAR_BANK = [
   '金','具','安','合','变','口','先','打','花','觉'
 ];
 
+// ===== 等级配置（运行时从 levels.json 加载，此为兜底） =====
+let LEVELS = [
+  { index: 0, name: '练气期', speedMult: 0.5 },
+  { index: 1, name: '筑基期', speedMult: 1.0 },
+  { index: 2, name: '金丹期', speedMult: 1.5 },
+  { index: 3, name: '元婴期', speedMult: 2.0 },
+  { index: 4, name: '化神期', speedMult: 2.5 },
+];
+
 // ===== DOM 引用 =====
+const modeSelect = document.getElementById('mode-select');
+const modeLevel = document.getElementById('mode-level');
+const modeHighscore = document.getElementById('mode-highscore');
+const gameContainer = document.getElementById('game-container');
 const charArea = document.getElementById('char-area');
 const charInput = document.getElementById('char-input');
 const hpBarFill = document.getElementById('hp-bar-fill');
 const hpText = document.getElementById('hp-text');
 const scoreValue = document.getElementById('score-value');
 const flashOverlay = document.getElementById('flash-overlay');
+const pauseBtn = document.getElementById('pause-btn');
+const pauseOverlay = document.getElementById('pause-overlay');
+const timerDisplay = document.getElementById('timer-display');
+const levelDisplay = document.getElementById('level-display');
+const speedDisplay = document.getElementById('speed-display');
+const tribulationOverlay = document.getElementById('tribulation-overlay');
+const tribulationResultTitle = document.getElementById('tribulation-result-title');
+const tribulationResultText = document.getElementById('tribulation-result-text');
 const gameoverOverlay = document.getElementById('gameover-overlay');
+const gameoverTitle = document.getElementById('gameover-title');
 const finalScore = document.getElementById('final-score');
+const highScoreInfo = document.getElementById('high-score-info');
 const restartBtn = document.getElementById('restart-btn');
+const tribulationRetryBtn = document.getElementById('tribulation-retry-btn');
+const resumeBtn = document.getElementById('resume-btn');
 
 // ===== 游戏状态 =====
 const state = {
+  mode: 'cultivate',           // 'cultivate' | 'tribulation' | 'trial'
   hp: 50,
   maxHp: 50,
   score: 0,
   isGameOver: false,
-  activeChars: [],       // { char, x, y, speed, el }
+  isPaused: false,
+  activeChars: [],             // { char, x, y, speed, el }
   spawnTimerId: null,
   animFrameId: null,
   isComposing: false,
+  level: 0,                    // 修仙等级索引 0-4
+  trialHighScore: 0,
+  tribulationTimer: 240,       // 渡劫剩余秒数
+  tribulationTimerId: null,
+  trialSpeedMult: 0.5,
+  trialRampTimerId: null,
 };
 
 // ===== 字库索引（循环使用） =====
 let charBankIndex = 0;
-const shuffledBank = [...CHAR_BANK].sort(() => Math.random() - 0.5);
+let shuffledBank = [...CHAR_BANK].sort(() => Math.random() - 0.5);
 
 /** 获取下一个字（打乱后循环取用） */
 function nextChar() {
@@ -56,9 +89,22 @@ function nextChar() {
   return ch;
 }
 
+// ===== 速度计算 =====
+/** 获取当前模式的速度倍率 */
+function getSpeedMultiplier() {
+  if (state.mode === 'tribulation') {
+    return LEVELS[state.level] ? LEVELS[state.level].speedMult : 1.0;
+  }
+  if (state.mode === 'trial') {
+    return state.trialSpeedMult;
+  }
+  return 1.0; // 修炼模式
+}
+
 /** 生成一个掉落字 */
 function spawnChar() {
   if (state.isGameOver) return;
+  if (state.isPaused) return;
   if (state.activeChars.length >= 5) return;
 
   const char = nextChar();
@@ -68,7 +114,8 @@ function spawnChar() {
     ? 20 + Math.random() * Math.max(0, window.innerWidth - 40)
     : window.innerWidth * 0.25 + Math.random() * (window.innerWidth * 0.5);
   const y = -(30 + Math.random() * 90);   // -30 ~ -120
-  const speed = 0.5 + Math.random() * 0.7; // 0.5 ~ 1.2 px/frame
+  const baseSpeed = 0.5 + Math.random() * 0.7; // 0.5 ~ 1.2 px/frame
+  const speed = baseSpeed * getSpeedMultiplier();
 
   const el = document.createElement('span');
   el.className = 'falling-char';
@@ -82,6 +129,7 @@ function spawnChar() {
 
 /** 开始定时刷新 */
 function startSpawning() {
+  stopSpawning();
   state.spawnTimerId = setInterval(() => {
     spawnChar();
   }, 2500);
@@ -98,6 +146,10 @@ function stopSpawning() {
 // ===== 游戏循环 =====
 function gameLoop() {
   if (state.isGameOver) return;
+  if (state.isPaused) {
+    state.animFrameId = requestAnimationFrame(gameLoop);
+    return;
+  }
 
   const screenBottom = window.innerHeight;
 
@@ -126,7 +178,7 @@ function removeChar(index) {
 
 /** 启动游戏循环 */
 function startLoop() {
-  if (state.animFrameId) return; // 防止重复启动
+  if (state.animFrameId) return;
   state.animFrameId = requestAnimationFrame(gameLoop);
 }
 
@@ -147,25 +199,22 @@ function takeDamage(amount) {
   triggerFlash();
 
   if (state.hp <= 0) {
-    gameOver();
+    handleGameOver();
   }
 }
 
 function updateHpBar() {
   const pct = (state.hp / state.maxHp) * 100;
   hpBarFill.style.width = pct + '%';
-  // 血条渐变位置随血量变化（绿→红）
   hpBarFill.style.backgroundPosition = (100 - pct) + '% 50%';
   hpText.textContent = state.hp + ' / ' + state.maxHp;
 }
 
 // ===== 全屏闪烁 =====
 function triggerFlash() {
-  // 重置：移除 fading class，添加 active（立即红色）
   flashOverlay.classList.remove('fading');
   flashOverlay.classList.add('active');
 
-  // 下一帧开始淡出
   requestAnimationFrame(() => {
     flashOverlay.classList.remove('active');
     flashOverlay.classList.add('fading');
@@ -179,7 +228,6 @@ charInput.addEventListener('compositionstart', () => {
 
 charInput.addEventListener('compositionend', (e) => {
   state.isComposing = false;
-  // IME 组合完成，取最终输入
   const text = e.data || charInput.value;
   if (text) {
     processInput(text);
@@ -188,7 +236,6 @@ charInput.addEventListener('compositionend', (e) => {
 });
 
 charInput.addEventListener('input', () => {
-  // 非 IME 输入时直接处理（如直接输入英文、数字）
   if (!state.isComposing) {
     const text = charInput.value;
     if (text) {
@@ -201,27 +248,24 @@ charInput.addEventListener('input', () => {
 /** 处理输入文本，匹配屏幕上的字 */
 function processInput(text) {
   if (state.isGameOver) return;
+  if (state.isPaused) return;
 
-  // 取最后一个有效字符（兼容输入法可能带的多余字符）
   const inputChar = text.slice(-1);
   if (!inputChar) return;
 
-  // 在活跃字中查找匹配
   let matched = false;
   for (let i = state.activeChars.length - 1; i >= 0; i--) {
     if (state.activeChars[i].char === inputChar) {
-      // 匹配成功！
       popChar(i);
       state.score += 10;
       scoreValue.textContent = state.score;
-      spawnChar(); // 打掉即补
+      spawnChar();
       matched = true;
       break;
     }
   }
 
   if (!matched) {
-    // 匹配失败
     takeDamage(1);
   }
 }
@@ -231,7 +275,6 @@ function popChar(index) {
   const ch = state.activeChars[index];
   ch.el.classList.add('popping');
 
-  // 动画结束后移除
   ch.el.addEventListener('animationend', function handler() {
     ch.el.removeEventListener('animationend', handler);
     ch.el.remove();
@@ -240,50 +283,299 @@ function popChar(index) {
   state.activeChars.splice(index, 1);
 }
 
-// ===== 游戏结束 =====
-function gameOver() {
+// ===== 暂停（修炼模式专用） =====
+function togglePause() {
+  if (state.mode !== 'cultivate' || state.isGameOver) return;
+  if (state.isPaused) {
+    resumeGame();
+  } else {
+    pauseGame();
+  }
+}
+
+function pauseGame() {
+  state.isPaused = true;
+  charInput.disabled = true;
+  pauseOverlay.classList.remove('hidden');
+  pauseBtn.textContent = '▶ 继续';
+  pauseBtn.classList.add('resume-state');
+}
+
+function resumeGame() {
+  state.isPaused = false;
+  charInput.disabled = false;
+  pauseOverlay.classList.add('hidden');
+  pauseBtn.textContent = '⏸ 暂停';
+  pauseBtn.classList.remove('resume-state');
+  charInput.focus();
+}
+
+pauseBtn.addEventListener('click', togglePause);
+resumeBtn.addEventListener('click', resumeGame);
+
+// 键盘快捷键暂停
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+    // 仅在修炼模式且未结束时有效
+    if (state.mode === 'cultivate' && !state.isGameOver) {
+      e.preventDefault();
+      togglePause();
+    }
+  }
+});
+
+// ===== 渡劫计时器 =====
+function startTribulationTimer() {
+  state.tribulationTimer = 240;
+  updateTimerDisplay();
+  timerDisplay.classList.remove('hidden');
+
+  state.tribulationTimerId = setInterval(() => {
+    if (state.isPaused || state.isGameOver) return;
+    state.tribulationTimer--;
+    updateTimerDisplay();
+
+    if (state.tribulationTimer <= 0) {
+      tribulationSuccess();
+    }
+  }, 1000);
+}
+
+function stopTribulationTimer() {
+  if (state.tribulationTimerId) {
+    clearInterval(state.tribulationTimerId);
+    state.tribulationTimerId = null;
+  }
+}
+
+function updateTimerDisplay() {
+  const min = Math.floor(state.tribulationTimer / 60);
+  const sec = state.tribulationTimer % 60;
+  timerDisplay.textContent = '剩余 ' + min + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function tribulationSuccess() {
   state.isGameOver = true;
   stopLoop();
   stopSpawning();
+  stopTribulationTimer();
 
   // 清除所有掉落字
-  for (const ch of state.activeChars) {
-    ch.el.remove();
-  }
-  state.activeChars = [];
+  clearAllChars();
 
-  // 禁用输入
   charInput.disabled = true;
 
-  // 显示结束界面
-  finalScore.textContent = '最终得分: ' + state.score;
-  gameoverOverlay.classList.remove('hidden');
+  if (state.level < 4) {
+    state.level++;
+  }
+  saveData();
+
+  tribulationResultTitle.textContent = '渡劫成功！';
+  tribulationResultTitle.style.color = '#ffd700';
+  tribulationResultText.textContent = '晋升至 ' + LEVELS[state.level].name;
+  tribulationRetryBtn.textContent = '继续渡劫';
+  tribulationOverlay.classList.remove('hidden');
 }
 
-// ===== 重新开始 =====
-function restart() {
-  // 重置状态
+// ===== 试炼速度递增 =====
+function startTrialRamp() {
+  state.trialSpeedMult = 0.5;
+  updateSpeedDisplay();
+  speedDisplay.classList.remove('hidden');
+
+  state.trialRampTimerId = setInterval(() => {
+    if (state.isGameOver) return;
+    state.trialSpeedMult += 0.1;
+    updateSpeedDisplay();
+  }, 15000);
+}
+
+function stopTrialRamp() {
+  if (state.trialRampTimerId) {
+    clearInterval(state.trialRampTimerId);
+    state.trialRampTimerId = null;
+  }
+}
+
+function updateSpeedDisplay() {
+  speedDisplay.textContent = '当前速度 x' + state.trialSpeedMult.toFixed(1);
+}
+
+// ===== 模式管理 =====
+/** 进入一个游戏模式 */
+function startMode(mode) {
+  stopLoop();
+  stopSpawning();
+  stopTribulationTimer();
+  stopTrialRamp();
+  clearAllChars();
+
+  state.mode = mode;
   state.hp = state.maxHp;
   state.score = 0;
   state.isGameOver = false;
+  state.isPaused = false;
   state.activeChars = [];
   state.isComposing = false;
+  state.tribulationTimer = 240;
+  state.trialSpeedMult = 0.5;
 
   // 重置 UI
   updateHpBar();
   scoreValue.textContent = '0';
   charInput.disabled = false;
   charInput.value = '';
-  gameoverOverlay.classList.add('hidden');
-
-  // 清除残留 DOM
   charArea.innerHTML = '';
+  gameoverOverlay.classList.add('hidden');
+  tribulationOverlay.classList.add('hidden');
+  pauseOverlay.classList.add('hidden');
+  flashOverlay.classList.remove('active', 'fading');
+  highScoreInfo.classList.add('hidden');
+
+  // 隐藏所有模式特定元素
+  pauseBtn.classList.add('hidden');
+  timerDisplay.classList.add('hidden');
+  levelDisplay.classList.add('hidden');
+  speedDisplay.classList.add('hidden');
+
+  modeSelect.style.display = 'none';
+  gameContainer.classList.remove('hidden');
+
+  // 模式特定初始化
+  if (mode === 'cultivate') {
+    gameoverTitle.textContent = '道心破碎';
+    pauseBtn.classList.remove('hidden');
+    pauseBtn.textContent = '⏸ 暂停';
+    pauseBtn.classList.remove('resume-state');
+  } else if (mode === 'tribulation') {
+    gameoverTitle.textContent = '渡劫失败';
+    levelDisplay.textContent = '当前境界：' + LEVELS[state.level].name;
+    levelDisplay.classList.remove('hidden');
+    startTribulationTimer();
+  } else if (mode === 'trial') {
+    gameoverTitle.textContent = '试炼结束';
+    highScoreInfo.classList.remove('hidden');
+    highScoreInfo.textContent = '最高分：' + state.trialHighScore;
+    startTrialRamp();
+  }
 
   // 重新打乱字库
-  shuffledBank.sort(() => Math.random() - 0.5);
+  shuffledBank = [...CHAR_BANK].sort(() => Math.random() - 0.5);
   charBankIndex = 0;
 
-  // 启动游戏
+  // 初始生成 3 个字
+  spawnChar();
+  spawnChar();
+  spawnChar();
+
+  // 启动
+  startSpawning();
+  startLoop();
+  charInput.focus();
+}
+
+/** 返回模式选择界面 */
+function backToMenu() {
+  stopLoop();
+  stopSpawning();
+  stopTribulationTimer();
+  stopTrialRamp();
+  clearAllChars();
+
+  state.isGameOver = false;
+  state.isPaused = false;
+  state.activeChars = [];
+  state.isComposing = false;
+
+  charInput.disabled = false;
+  charInput.value = '';
+  charArea.innerHTML = '';
+
+  gameContainer.classList.add('hidden');
+  gameoverOverlay.classList.add('hidden');
+  tribulationOverlay.classList.add('hidden');
+  pauseOverlay.classList.add('hidden');
+  flashOverlay.classList.remove('active', 'fading');
+
+  // 更新模式选择界面的信息
+  modeLevel.textContent = LEVELS[state.level].name;
+  modeHighscore.textContent = state.trialHighScore;
+
+  modeSelect.style.display = '';
+}
+
+function clearAllChars() {
+  for (const ch of state.activeChars) {
+    ch.el.remove();
+  }
+  state.activeChars = [];
+}
+
+// ===== 游戏结束处理 =====
+function handleGameOver() {
+  state.isGameOver = true;
+  stopLoop();
+  stopSpawning();
+
+  if (state.mode === 'tribulation') {
+    stopTribulationTimer();
+    clearAllChars();
+    charInput.disabled = true;
+    tribulationResultTitle.textContent = '渡劫失败';
+    tribulationResultTitle.style.color = '#f44336';
+    tribulationResultText.textContent = '道心受挫 · 等级不变';
+    tribulationRetryBtn.textContent = '重新渡劫';
+    tribulationOverlay.classList.remove('hidden');
+    return;
+  }
+
+  if (state.mode === 'trial') {
+    stopTrialRamp();
+    // 更新最高分
+    if (state.score > state.trialHighScore) {
+      state.trialHighScore = state.score;
+      saveData();
+    }
+    highScoreInfo.textContent = '最高分：' + state.trialHighScore;
+    highScoreInfo.classList.remove('hidden');
+  }
+
+  // 修炼 / 试炼通用结束
+  clearAllChars();
+  charInput.disabled = true;
+  finalScore.textContent = '最终得分: ' + state.score;
+  gameoverOverlay.classList.remove('hidden');
+}
+
+// ===== 重新开始（修炼 / 试炼用） =====
+function restart() {
+  state.hp = state.maxHp;
+  state.score = 0;
+  state.isGameOver = false;
+  state.activeChars = [];
+  state.isComposing = false;
+
+  updateHpBar();
+  scoreValue.textContent = '0';
+  charInput.disabled = false;
+  charInput.value = '';
+  gameoverOverlay.classList.add('hidden');
+  highScoreInfo.classList.add('hidden');
+  charArea.innerHTML = '';
+
+  shuffledBank = [...CHAR_BANK].sort(() => Math.random() - 0.5);
+  charBankIndex = 0;
+
+  if (state.mode === 'trial') {
+    stopTrialRamp();
+    state.trialSpeedMult = 0.5;
+    updateSpeedDisplay();
+    startTrialRamp();
+  }
+
+  spawnChar();
+  spawnChar();
+  spawnChar();
   startSpawning();
   startLoop();
   charInput.focus();
@@ -291,32 +583,35 @@ function restart() {
 
 restartBtn.addEventListener('click', restart);
 
-// ===== 游戏初始化 =====
-function init() {
-  // 初始生成 3 个字，让游戏一开始就有东西
-  spawnChar();
-  spawnChar();
-  spawnChar();
+// ===== 渡劫重试 =====
+tribulationRetryBtn.addEventListener('click', () => {
+  tribulationOverlay.classList.add('hidden');
+  startMode('tribulation');
+});
 
-  // 启动定时刷新和游戏循环
-  startSpawning();
-  startLoop();
+// ===== 返回按钮 =====
+document.querySelectorAll('[id^="back-menu-btn-"]').forEach(btn => {
+  btn.addEventListener('click', backToMenu);
+});
 
-  // 聚焦输入框
-  charInput.focus();
-
-  // 保持输入框始终聚焦
-  document.addEventListener('click', () => {
-    if (!state.isGameOver) {
-      charInput.focus();
-    }
+// ===== 模式选择卡片点击 =====
+document.querySelectorAll('.mode-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const mode = card.getAttribute('data-mode');
+    startMode(mode);
   });
-}
+});
 
-// 启动！
-init();
+// ===== 保持输入框聚焦 =====
+document.addEventListener('click', (e) => {
+  if (state.isGameOver || state.isPaused) return;
+  if (gameContainer.classList.contains('hidden')) return;
+  // 不要抢暂停遮罩和结束遮罩的焦点
+  if (e.target.closest('#pause-overlay, #gameover-overlay, #tribulation-overlay')) return;
+  charInput.focus();
+});
 
-// 窗口大小变化时，确保字不会超出边界
+// ===== 窗口 resize 处理 =====
 window.addEventListener('resize', () => {
   const maxX = window.innerWidth - 100;
   for (const ch of state.activeChars) {
@@ -326,3 +621,55 @@ window.addEventListener('resize', () => {
     }
   }
 });
+
+// ===== 本地存储 =====
+const SAVE_KEY = 'zijie-xiuxian-save';
+
+function loadSaveData() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (typeof data.level === 'number') state.level = data.level;
+      if (typeof data.trialHighScore === 'number') state.trialHighScore = data.trialHighScore;
+    }
+  } catch (e) {
+    // 忽略损坏的数据
+  }
+}
+
+function saveData() {
+  try {
+    const data = {
+      level: state.level,
+      trialHighScore: state.trialHighScore,
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) {
+    // 忽略存储失败
+  }
+}
+
+// ===== 游戏初始化 =====
+async function init() {
+  // 加载等级配置
+  try {
+    const resp = await fetch('levels.json');
+    const data = await resp.json();
+    if (data.levels && data.levels.length > 0) {
+      LEVELS = data.levels;
+    }
+  } catch (e) {
+    // 使用内置兜底配置
+  }
+
+  // 加载存档
+  loadSaveData();
+
+  // 显示模式选择界面
+  modeLevel.textContent = LEVELS[state.level] ? LEVELS[state.level].name : '练气期';
+  modeHighscore.textContent = state.trialHighScore;
+}
+
+// 启动！
+init();
