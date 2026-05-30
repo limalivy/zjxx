@@ -105,9 +105,10 @@ html, body {
   margin: 0 auto 6px;
 }
 
-.mode-icon svg {
+.mode-icon img {
   width: 100%;
   height: 100%;
+  display: block;
 }
 
 .mode-card h2 {
