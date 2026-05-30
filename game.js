@@ -68,7 +68,8 @@ const state = {
   trialSpeedMult: 0.5,
   trialRampTimerId: null,
   // 修炼模式：练习系统
-  practiceList: [],            // [{ char, expiresAt }]  需要加强练习的字
+  practiceList: [],            // 当前高概率掉落的字
+  pendingPractice: [],         // 等待 10 秒后激活 [{char, activateAt}]
   consecutiveCorrect: 0,       // 连续正确次数
   pendingWrong: null,          // 用户刚输入错的字符
   gameStartTime: 0,            // 本局开始时间戳
@@ -83,8 +84,7 @@ let shuffledBank = [...activeCharBank].sort(() => Math.random() - 0.5);
 function nextChar() {
   // 修炼模式：练习列表中的字有 50% 概率被选中
   if (state.mode === 'cultivate' && state.practiceList.length > 0 && Math.random() < 0.5) {
-    const pick = state.practiceList[Math.floor(Math.random() * state.practiceList.length)];
-    return pick.char;
+    return state.practiceList[Math.floor(Math.random() * state.practiceList.length)];
   }
   const ch = shuffledBank[charBankIndex];
   charBankIndex = (charBankIndex + 1) % shuffledBank.length;
@@ -104,11 +104,12 @@ function getSpeedMultiplier() {
 }
 
 // ===== 练习系统（修炼模式） =====
-/** 将字加入练习列表，10 秒后过期 */
+/** 将字加入延迟练习队列，10 秒后激活高概率掉落 */
 function addToPractice(char) {
-  // 避免重复添加
-  if (state.practiceList.some(p => p.char === char)) return;
-  state.practiceList.push({ char, expiresAt: Date.now() + 10000 });
+  // 避免重复添加（已在 pending 或 practice 中）
+  if (state.practiceList.includes(char)) return;
+  if (state.pendingPractice.some(p => p.char === char)) return;
+  state.pendingPractice.push({ char, activateAt: Date.now() + 10000 });
 }
 
 /** 生成一个掉落字 */
@@ -117,7 +118,15 @@ function spawnChar() {
   if (state.isPaused) return;
   if (state.activeChars.length >= 5) return;
 
-  const char = nextChar();
+  let char = nextChar();
+  // 同屏不能出现一样的字，最多重试 10 次
+  for (let retry = 0; retry < 10; retry++) {
+    if (state.activeChars.some(c => c.char === char)) {
+      char = nextChar();
+    } else {
+      break;
+    }
+  }
   // X轴：手机全屏，桌面端约束在中间2/4区域
   const isMobile = window.innerWidth <= 768;
   const x = isMobile
@@ -164,9 +173,17 @@ function gameLoop() {
   const screenBottom = window.innerHeight;
   const now = Date.now();
 
-  // 清理过期的练习字
-  if (state.mode === 'cultivate') {
-    state.practiceList = state.practiceList.filter(p => p.expiresAt > now);
+  // 修炼模式：延迟练习字 10 秒后激活
+  if (state.mode === 'cultivate' && state.pendingPractice.length > 0) {
+    for (let i = state.pendingPractice.length - 1; i >= 0; i--) {
+      if (state.pendingPractice[i].activateAt <= now) {
+        const char = state.pendingPractice[i].char;
+        if (!state.practiceList.includes(char)) {
+          state.practiceList.push(char);
+        }
+        state.pendingPractice.splice(i, 1);
+      }
+    }
   }
 
   // 倒序遍历（方便删除）
@@ -290,6 +307,7 @@ function processInput(text) {
         state.consecutiveCorrect++;
         if (state.consecutiveCorrect >= 2) {
           state.practiceList = [];
+          state.pendingPractice = [];
           state.consecutiveCorrect = 0;
         }
       }
@@ -516,6 +534,7 @@ function startMode(mode) {
   state.tribulationTimer = 240;
   state.trialSpeedMult = 0.5;
   state.practiceList = [];
+  state.pendingPractice = [];
   state.consecutiveCorrect = 0;
   state.pendingWrong = null;
   stopCultivateTimer();
@@ -675,6 +694,7 @@ function restart() {
 
   if (state.mode === 'cultivate') {
     state.practiceList = [];
+    state.pendingPractice = [];
     state.consecutiveCorrect = 0;
     state.pendingWrong = null;
     stopCultivateTimer();
