@@ -32,6 +32,20 @@
     </div>
   </div>
 
+  <!-- 修炼速度选择遮罩 -->
+  <div id="speed-select-overlay" class="hidden">
+    <div id="speed-select-box">
+      <h2>选择修炼速度</h2>
+      <div id="speed-options">
+        <button class="speed-option" data-speed="0.5">慢</button>
+        <button class="speed-option" data-speed="1.0">常</button>
+        <button class="speed-option" data-speed="1.5">快</button>
+        <button class="speed-option" data-speed="2.0">极</button>
+      </div>
+      <button id="speed-back-btn" type="button">返回</button>
+    </div>
+  </div>
+
   <!-- 游戏主容器 -->
   <div id="game-container" class="hidden">
     <!-- HUD -->
@@ -70,20 +84,6 @@
 
     <!-- 全屏闪烁遮罩 -->
     <div id="flash-overlay"></div>
-
-    <!-- 修炼速度选择遮罩 -->
-    <div id="speed-select-overlay" class="hidden">
-      <div id="speed-select-box">
-        <h2>选择修炼速度</h2>
-        <div id="speed-options">
-          <button class="speed-option" data-speed="0.5">慢</button>
-          <button class="speed-option" data-speed="1.0">常</button>
-          <button class="speed-option" data-speed="1.5">快</button>
-          <button class="speed-option" data-speed="2.0">极</button>
-        </div>
-        <button id="speed-back-btn" type="button">返回</button>
-      </div>
-    </div>
 
     <!-- 暂停遮罩 -->
     <div id="pause-overlay" class="hidden">
