@@ -75,17 +75,29 @@ const state = {
   gameStartTime: 0,            // 本局开始时间戳
   cultivateTimerId: null,      // 修炼计时器
   lastScreenHeight: 0,         // 上一帧屏幕高度（检测键盘弹起）
+  practicedChars: new Set(),    // 修炼模式：本轮已正确打出的字
 };
 
 // ===== 字库索引（循环使用） =====
 let charBankIndex = 0;
 let shuffledBank = [...activeCharBank].sort(() => Math.random() - 0.5);
 
-/** 获取下一个字（打乱后循环取用，修炼模式练习字有更高概率） */
+/** 获取下一个字（打乱后循环取用，修炼模式优先未练字、练习字有更高概率） */
 function nextChar() {
   // 修炼模式：练习列表中的字有 50% 概率被选中
   if (state.mode === 'cultivate' && state.practiceList.length > 0 && Math.random() < 0.5) {
     return state.practiceList[Math.floor(Math.random() * state.practiceList.length)];
+  }
+  // 修炼模式：80% 概率优先出未练过的字
+  if (state.mode === 'cultivate') {
+    const unpracticed = activeCharBank.filter(c => !state.practicedChars.has(c));
+    if (unpracticed.length === 0) {
+      state.practicedChars.clear();
+      unpracticed.push(...activeCharBank);
+    }
+    if (Math.random() < 0.8) {
+      return unpracticed[Math.floor(Math.random() * unpracticed.length)];
+    }
   }
   const ch = shuffledBank[charBankIndex];
   charBankIndex = (charBankIndex + 1) % shuffledBank.length;
@@ -313,6 +325,11 @@ function processInput(text) {
       state.score += 10;
       scoreValue.textContent = state.score;
       spawnChar();
+
+      // 修炼模式：记录已练字
+      if (state.mode === 'cultivate') {
+        state.practicedChars.add(inputChar);
+      }
 
       // 修炼模式：如果之前有 pendingWrong，当前匹配到的字就是用户本想打的字
       if (state.mode === 'cultivate' && state.pendingWrong) {
@@ -553,6 +570,7 @@ function startMode(mode) {
   state.pendingPractice = [];
   state.consecutiveCorrect = 0;
   state.pendingWrong = null;
+  state.practicedChars = new Set();
   state.lastScreenHeight = window.innerHeight;
   stopCultivateTimer();
 
@@ -714,6 +732,7 @@ function restart() {
     state.pendingPractice = [];
     state.consecutiveCorrect = 0;
     state.pendingWrong = null;
+    state.practicedChars = new Set();
     stopCultivateTimer();
     startCultivateTimer();
   }
