@@ -420,7 +420,7 @@ speedBackBtn2.addEventListener('click', () => {
 
 // 键盘快捷键暂停
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+  if (e.key === 'Escape') {
     // 仅在修炼模式且未结束时有效
     if (state.mode === 'cultivate' && !state.isGameOver) {
       e.preventDefault();
