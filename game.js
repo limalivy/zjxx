@@ -67,6 +67,7 @@ const state = {
   tribulationTimerId: null,
   trialSpeedMult: 0.5,
   trialRampTimerId: null,
+  lastFrameTime: 0,             // 上一帧时间戳，用于 delta time
   // 修炼模式：练习系统
   practiceList: [],            // 当前高概率掉落的字
   pendingPractice: [],         // 等待 10 秒后激活 [{char, activateAt}]
@@ -146,10 +147,13 @@ function spawnChar() {
     ? 20 + Math.random() * Math.max(0, window.innerWidth - 40)
     : window.innerWidth * 0.25 + Math.random() * (window.innerWidth * 0.5);
   const y = -(30 + Math.random() * 90);   // -30 ~ -120
-  const baseSpeed = 0.5 + Math.random() * 0.7; // 0.5 ~ 1.2 px/frame
-  // 手机屏幕小，速度降至 70%，否则字下落太快
+  // 速度以 1080p 60Hz 为基准：转为 px/s 并按屏幕高度等比缩放
+  const REFERENCE_HEIGHT = 1080;
+  const REFERENCE_FPS = 60;
+  const baseSpeedPxPerSec = (0.5 + Math.random() * 0.7) * REFERENCE_FPS * 2; // 60~144 px/s（1080p 基准）
+  const heightScale = window.innerHeight / REFERENCE_HEIGHT;
   const mobileFactor = window.innerWidth <= 768 ? 0.7 : 1.0;
-  const speed = baseSpeed * getSpeedMultiplier() * mobileFactor;
+  const speed = baseSpeedPxPerSec * getSpeedMultiplier() * heightScale * mobileFactor; // px/s
 
   const el = document.createElement('span');
   el.className = 'falling-char';
@@ -188,6 +192,10 @@ function gameLoop() {
   const screenBottom = window.innerHeight;
   const now = Date.now();
 
+  // 计算帧间隔（秒），首帧用 1/60 避免跳跃
+  const deltaTime = state.lastFrameTime ? (now - state.lastFrameTime) / 1000 : 1 / 60;
+  state.lastFrameTime = now;
+
   // 检测键盘弹起导致的屏幕高度骤降（手机常见）
   const heightDrop = state.lastScreenHeight - screenBottom;
   if (heightDrop > 100 && state.lastScreenHeight > 0) {
@@ -217,7 +225,7 @@ function gameLoop() {
   // 倒序遍历（方便删除）
   for (let i = state.activeChars.length - 1; i >= 0; i--) {
     const ch = state.activeChars[i];
-    ch.y += ch.speed;
+    ch.y += ch.speed * deltaTime;
     ch.el.style.top = ch.y + 'px';
 
     // 检测越界
@@ -572,6 +580,7 @@ function startMode(mode) {
   state.pendingWrong = null;
   state.practicedChars = new Set();
   state.lastScreenHeight = window.innerHeight;
+  state.lastFrameTime = 0;
   stopCultivateTimer();
 
   // 重置 UI
